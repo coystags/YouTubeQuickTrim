@@ -21,7 +21,8 @@ Paste in exported clip  independent links, and the player will load, order, and 
 
 There is basic timeline visualization. 
 
-It is built to work seamlessly with the companion extension. 
+It is built to work with the companion extension. 
+
 You can independently format clips of YouTube videos and put them into the website without the extension but the extension does make it easier. 
 
 You can easily copy the text from the the .html and paste it into a neocities page to get your own personal YouTube Clip Player. 
