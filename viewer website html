@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>YouTube Clip Player</title>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  background: #0f0f0f;
+  color: white;
+  font-family: Arial;
+}
+
+/* ================= LEFT SIDE ================= */
+#left {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* VIDEO AREA */
+/* overlay sectioner */
+#playerWrapper {
+  position: relative;
+  flex: 1;
+  height: 100%;
+}
+
+#player {
+  width: 100%;
+  height: 100%;
+}
+
+#player iframe {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* overlay container */
+#clipOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+}
+
+/* the highlighted clip section */
+#clipBar {
+  position: absolute;
+  height: 100%;
+  background: #4caf50;
+  left: 0;
+  width: 0;
+}
+
+
+/* CONTROLS BAR */
+#controls {
+  height: 60px;
+  flex: 0 0 60px;   /* <- key line: DO NOT grow or shrink */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  border-top: 1px solid #333;
+  background: #111;
+}
+
+button {
+  background: #222;
+  color: white;
+  border: 1px solid #333;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  border: 1px solid #4caf50;
+}
+
+/* ================= RIGHT SIDE ================= */
+#right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #333;
+  resize: horizontal;
+  overflow: auto;
+  min-width: 220px;
+  max-width: 600px;
+}
+
+/* CLIPS (top 2/3) */
+#clipList {
+  flex: 2;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* DIVIDER AREA */
+#divider {
+  border-top: 1px solid #333;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* INPUT (bottom 1/3) */
+#inputArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #333;
+  padding: 10px;
+}
+
+
+
+
+textarea {
+  flex: 1;
+  background: #111;
+  color: white;
+  border: 1px solid #333;
+  resize: none;
+}
+
+/* ================= CLIPS ================= */
+.clip {
+  display: flex;
+  justify-content: space-between;
+  background: #1e1e1e;
+  padding: 6px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.active {
+  border: 2px solid #4caf50;
+}
+
+.del {
+  cursor: pointer;
+  margin-left: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LEFT -->
+<div id="left">
+  <div id="player"></div>
+    <div id="playerWrapper">
+      <div id="player"></div>
+        <div id="clipOverlay">
+     <div id="clipBar"></div>
+    </div>
+   </div>
+
+  <div id="controls">
+    <button onclick="startClips()">Start</button>
+    <button onclick="prevClip()">Previous</button>
+    <button onclick="togglePlay()">Pause/Play</button>
+    <button onclick="toggleLoop(this)">Loop OFF</button>
+    <button onclick="nextClip()">Next</button>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div id="right">
+  <div id="clipList"></div>
+
+  <div id="divider">
+    <button onclick="addClips()">Input Clips</button>
+    <button onclick="clearAll()">Delete All</button>
+  </div>
+
+  <div id="inputArea">
+    <textarea id="input" placeholder="a | v=ID&start=10&end=20"></textarea>
+  </div>
+</div>
+
+<script>
+let player;
+let ytReady = false;
+
+let clips = [];
+let current = -1;
+let loop = false;
+let endWatcher = null;
+
+/* ================= PARSE ================= */
+function parseInput(text) {
+  return text
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map(line => {
+      const [label, data] = line.split("|").map(s => s.trim());
+      const params = new URLSearchParams(data);
+
+      return {
+        label,
+        v: params.get("v"),
+        start: Number(params.get("start")),
+        end: Number(params.get("end"))
+      };
+    });
+}
+
+/* ================= ADD CLIPS ================= */
+function addClips() {
+  const newClips = parseInput(document.getElementById("input").value);
+  clips.push(...newClips);
+  document.getElementById("input").value = "";
+  render();
+}
+
+/* ================= RENDER ================= */
+function render() {
+  const list = document.getElementById("clipList");
+  list.innerHTML = "";
+  
+  clips.forEach((c, i) => {
+    const div = document.createElement("div");
+
+    div.className = "clip";
+    if (i === current) div.classList.add("active");
+
+    const label = document.createElement("div");
+    label.textContent = c.label;
+
+    label.onclick = () => loadClip(i);
+
+    const del = document.createElement("div");
+    del.textContent = "❌";
+    del.className = "del";
+
+    del.onclick = (e) => {
+      e.stopPropagation();
+
+      clips.splice(i, 1);
+
+      if (current === i) current = -1;
+
+      render();
+    };
+
+    div.append(label, del);
+    list.appendChild(div);
+    
+    console.log("Rendering, current =", current);
+  });
+}
+
+
+/* ================= LOAD CLIP ================= */
+function loadClip(i) {
+  if (endWatcher) {
+  clearInterval(endWatcher);
+  endWatcher = null;
+}
+ 
+  if (!clips[i]) return;
+
+  current = i;
+  render(); // ALWAYS update UI immediately
+
+  const clip = clips[i];
+
+  if (!ytReady) return; // safe now
+
+  if (player) {
+    player.destroy();
+  }
+
+  document.getElementById("player").innerHTML = "";
+
+  player = new YT.Player("player", {
+    videoId: clip.v,
+    playerVars: {
+      autoplay: 1,
+      controls: 1
+    },
+    events: {
+      onReady: () => {
+       player.seekTo(clip.start, true);
+       player.playVideo();
+       setTimeout(() => updateTimelineBar(clip), 300);
+       watchEnd(clip); // <-- THIS WAS MISSING / INCONSISTENT
+      }
+    }
+  });
+}
+
+
+/* ================= PLAY ================= */
+function play(c) {
+  player.seekTo(c.start, true);
+  player.playVideo();
+
+  watchEnd(c);
+}
+
+/* ================= END WATCH ================= */
+function watchEnd(c) {
+  // STOP any existing watcher first
+  if (endWatcher) {
+    clearInterval(endWatcher);
+    endWatcher = null;
+  }
+
+  endWatcher = setInterval(() => {
+    if (!player || typeof player.getCurrentTime !== "function") return;
+
+    const t = player.getCurrentTime();
+
+    if (t >= c.end) {
+      clearInterval(endWatcher);
+      endWatcher = null;
+
+      if (loop) {
+        player.seekTo(c.start, true);
+        player.playVideo();
+        watchEnd(c); // restart loop cleanly
+      } else {
+        nextClip(); // only fires ONCE now
+      }
+    }
+  }, 200);
+}
+
+function updateTimelineBar(clip) {
+  if (!player || typeof player.getDuration !== "function") return;
+
+  const duration = player.getDuration();
+  if (!duration) return;
+
+  const startPercent = (clip.start / duration) * 100;
+  const endPercent = (clip.end / duration) * 100;
+  const widthPercent = endPercent - startPercent;
+
+  const bar = document.getElementById("clipBar");
+
+  bar.style.left = startPercent + "%";
+  bar.style.width = widthPercent + "%";
+}
+
+/* ================= CONTROLS ================= */
+function startClips() {
+  if (!clips.length) return;
+
+  current = -1;   // reset selection
+  loadClip(0);
+}
+
+function prevClip() {
+  if (current > 0) loadClip(current - 1);
+}
+
+function nextClip() {
+  if (current + 1 < clips.length) loadClip(current + 1);
+}
+
+function togglePlay() {
+  if (!player) return;
+
+  const state = player.getPlayerState();
+  if (state === YT.PlayerState.PLAYING) {
+    player.pauseVideo();
+  } else {
+    player.playVideo();
+  }
+}
+
+function toggleLoop(btn) {
+  loop = !loop;
+  btn.textContent = "Loop " + (loop ? "ON" : "OFF");
+}
+
+function clearAll() {
+  clips = [];
+  current = -1;
+  render();
+}
+
+/* ================= YOUTUBE ================= */
+let tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.body.appendChild(tag);
+
+window.onYouTubeIframeAPIReady = function () {
+  ytReady = true;
+};
+</script>
+
+</body>
+</html>
