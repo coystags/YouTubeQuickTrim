@@ -1,0 +1,44 @@
+How to Use
+
+1. Enable the Extension
+
+Click the extension icon in your browser toolbar. Ensure “Enable Clips UI” is checked.
+
+2. Open a YouTube Video
+
+Go to a YouTube video. A 'CLIPS' button will appear in the bottom-right corner, click it to open the clip sidebar.
+
+3. Create a Clip
+
+Play the video to your  start point, Click 'Start', Play to the end point, Click 'End'.
+
+Your clip will be saved to the history & copied to your clipboard automatically.
+
+4. Manage Clips
+Click a clip to copy its link again. Double-click a clip to rename it. Click ❌ to delete a clip.
+
+5. Export Clips
+
+Export (basic): Copies all clip URLs
+
+Export + Labels: Includes labels or video titles
+
+Independent Export (recommended): Copies clips in this format:
+
+Label | v=VIDEO_ID&start=START&end=END
+
+This format is compatible with the clip player website
+
+6. Use the Clip Player
+
+Open your clip player using the popup button
+
+Paste your exported clips into the input box
+
+Click 'Input Clips'
+
+Click 'Start' 
+
+Clips are stored locally in your browser
+No data is sent externally
+Works best with standard YouTube video pages
