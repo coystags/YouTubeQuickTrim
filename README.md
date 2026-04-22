@@ -1,10 +1,10 @@
-YouTube removed their clip function buy I still wanted the feature so I tried to solve the problem, this project was atleast somewhat scucessful. 
+YouTube removed their clip function but I still wanted to make and share clips with my friends so I tried to solve the problem, this project was atleast somewhat scucessful. 
 
 There are two parts to the project:
 
-Extension
+The Extension
 
-YouTube Quick Trim is a Firefox extension.
+YouTube Quick Trim is a FireFox extension.
 
 It can capture, label, and export clips directly from YouTube videos. 
 
@@ -13,11 +13,11 @@ With a simple sidebar interface, you can define start and end points, organize c
 Clips can be shared through independent links that use YouTubeTrimmer.com, mass exported with/without labels, or through independent exports that work on the website. 
 
 
-Website
+The Website
 
-This YouTube clip player is a simple, standalone website tool for playing back custom YouTube clips from a list. 
+This YouTube clip player is a simple, standalone website for playing back custom YouTube clips made using the extension.
 
-Paste in exported clip  independent links, and the player will load, order, and optionally loop each clip. 
+Paste in the exported clip independent links, and the player will load, order, and/or optionally loop each clip. 
 
 There is basic timeline visualization. 
 
